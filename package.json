@@ -1,0 +1,20 @@
+{
+  "name": "nlpeezy",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "./node_modules/mocha/bin/mocha"
+  },
+  "author": "Aaron Caffrey",
+  "license": "MIT",
+  "dependencies": {
+    "extends-classes": "^1.0.5",
+    "split2": "^3.1.1"
+  },
+  "devDependencies": {
+    "mocha": "^6.1.4",
+    "mocha-lcov-reporter": "^1.3.0",
+    "nyc": "^14.1.1"
+  }
+}

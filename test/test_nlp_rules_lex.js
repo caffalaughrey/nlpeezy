@@ -1,0 +1,83 @@
+// 'use strict';
+//
+// const assert = require('assert');
+// const chain = require('../src/utils/chain');
+// const constants = require('../src/nlp/constants');
+// const lex = require('../src/nlp/rules/lex');
+// const messages = constants.messages;
+// const parsePhases = constants.parsePhases;
+// const punctuation = require('../src/nlp/rules/punctuation');
+// 
+// const INVALID_TYPE = messages.INVALID_TYPE;
+// const INVALID_VALUE = messages.INVALID_VALUE;
+//
+// const EnclosingPunctuationToken =
+//   require('../src/nlp/classes/EnclosingPunctuationToken');
+// const LexicalToken = require('../src/nlp/classes/LexicalToken');
+// const LinkingPunctuationToken =
+//     require('../src/nlp/classes/LinkingPunctuationToken');
+// const OrdinaryPunctuationToken =
+//     require('../src/nlp/classes/OrdinaryPunctuationToken');
+// const UnprocessedToken = require('../src/nlp/classes/UnprocessedToken');
+//
+// describe('/nlp/rules/lex', () => {
+// 	describe('#applyTo()', () => {
+//     it('knows a lexical token between brackets', done => {
+//       let parent = new UnprocessedToken('(lúibíní)');
+//
+//       chain([punctuation, lex], (rule, next) => {
+//         rule.applyTo(parent, parsePhases.LINEAR, (err, tokens) => {
+//           if (err) return next(err);
+//
+//           parent.children = parent.children.concat(tokens);
+//           parent.sort();
+//
+//           return next();
+//         })
+//       }).then(_ => {
+//         let tokens = parent.children;
+//
+//         assert(tokens[0] instanceof EnclosingPunctuationToken, INVALID_TYPE);
+//         assert(tokens[0].index == 0, INVALID_VALUE);
+//         assert(tokens[0].getValue() == '(', INVALID_VALUE);
+//         assert(tokens[1] instanceof LexicalToken, INVALID_TYPE);
+//         assert(tokens[1].index == 1, INVALID_VALUE);
+//         assert(tokens[1].getValue() == 'lúibíní', INVALID_VALUE);
+//         assert(tokens[2] instanceof EnclosingPunctuationToken, INVALID_TYPE);
+//         assert(tokens[2].index == 8, INVALID_VALUE);
+//         assert(tokens[2].getValue() == ')', INVALID_VALUE);
+//         done();
+//       }).catch(err => {
+//         assert(false, err);
+//       });
+//     });
+//
+//     // it('knows an unprocessed token from non-lexical data', done => {
+//     //   let token = new UnprocessedToken('1+1=2');
+//     //
+//     //   lex.applyTo(token, parsePhases.LINEAR, (err, tokens) => {
+//     //     if (err) {
+//     //       throw err;
+//     //     }
+//     //
+//     //     assert(tokens[0] instanceof UnprocessedToken);
+//     //
+//     //     done();
+//     //   });
+//     // });
+//
+//     it('knows an error from hot-swapped punctuation data', done => {
+//       let token = new UnprocessedToken('earráid!');
+//       token.setInfo(punctuation.namespace, [new OrdinaryPunctuationToken('!')]);
+//       token.setInfo(lex.namespace, {});
+//
+//       lex.applyTo(token, parsePhases.LINEAR, (err, _) => {
+//         assert(err.name == 'LexRuleError', INVALID_TYPE);
+//         assert(err.message == 'lexTokens.push is not a function',
+//           INVALID_VALUE);
+//
+//         done();
+//       });
+//     });
+//   });
+// });

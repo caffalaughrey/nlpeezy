@@ -17,7 +17,7 @@ by Aaron Caffrey
    - [First Run](#first-run)
 
 ## Contributors
-Thanks goes to the package contributors as found on the [GitHub Contributors page][https://github.com/caffalaughrey/nlpeezy/graphs/contributors].
+Thanks goes to the package contributors as found on the [GitHub Contributors page](https://github.com/caffalaughrey/nlpeezy/graphs/contributors).
 
 Also, a special thanks goes to Michal Měchura, on whose
 [Lemmatization Lists repository](https://github.com/michmech/lemmatization-lists)

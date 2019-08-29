@@ -2,7 +2,7 @@
   "name": "nlpeezy",
   "version": "1.0.0-beta.0",
   "description": "A natural language processing package in Javascript",
-  "main": "./src/index.js",
+  "main": "src/index.js",
   "bin": {
     "lemma-manager": "./bin/lemma-manager.js",
     "nlpeezy-build": "./bin/build.sh"

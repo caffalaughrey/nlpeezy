@@ -1,15 +1,18 @@
 'use strict';
 
-const parsePhases = {
-  PREP: 0,
-  LINEAR: 1,
-  LAYOUT: 2,
+const parserEvents = {
+  TOKENS_RAW: 0,
+  TOKENS_TYPED: 1,
+  LEMMAS: 2,
+  POS: 3,
+  LAYOUT: 4,
   INACCESSIBLE: 13
 };
 
 const coreRules = {
   lex: 0,
-  punctuation: 1
+  punctuation: 1,
+  lemmatization: 2
 }
 
 const enclosingPunctuation = {
@@ -37,11 +40,13 @@ const messages = {
   INVALID_VALUE: 'Wrong value.',
   NON_STRING_VALUE: 'Non-string value.',
   UNKNOWN_STATE: 'Unknown state',
-  UNSUPPORTED_PARSE_PHASE: 'Unsupported parse phase'
+  UNSUPPORTED_PARSE_EVENT: 'Unsupported parse event type'
 };
 
 const namespaces = {
   LEX: 'lex',
+  LEMMAS: 'LEMMAS',
+  LEMMATIZATION: 'lemmatization',
   PUNCTUATION: 'punctuation'
 }
 
@@ -73,6 +78,9 @@ const whitespace = {
 };
 
 const BASE_LEX_REGEX = 'A-zÀ-ú';
+const LEMMATIZATION_LISTS_DIR = 'lemmatization-lists';
+const LEMMAS_LOADED_KEY = '__loaded__';
+const LEMMAS_SEPARATOR = ' ';
 
 const constants = {
   coreRules: coreRules,
@@ -81,11 +89,14 @@ const constants = {
   messages: messages,
   namespaces: namespaces,
   ordinaryPunctuation: ordinaryPunctuation,
-  parsePhases: parsePhases,
+  parserEvents: parserEvents,
   punctuationTypes: punctuationTypes,
   supportedLanguages: supportedLanguages,
   whitespace: whitespace,
-  BASE_LEX_REGEX: BASE_LEX_REGEX
+  BASE_LEX_REGEX: BASE_LEX_REGEX,
+  LEMMAS_LOADED_KEY: LEMMAS_LOADED_KEY,
+  LEMMAS_SEPARATOR: LEMMAS_SEPARATOR,
+  LEMMATIZATION_LISTS_DIR: LEMMATIZATION_LISTS_DIR
 }
 
 module.exports = constants;

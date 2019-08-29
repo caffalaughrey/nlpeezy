@@ -1,4 +1,4 @@
 {
-  "language":"ga",
+  "lemmatizationListsDir": "lemmatization-lists",
   "lemmatizationListsRepo": "https://github.com/michmech/lemmatization-lists.git"
 }

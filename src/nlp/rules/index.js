@@ -4,14 +4,14 @@ const chain = require('../../utils/chain');
 const constants = require('../constants');
 const coreRules = constants.coreRules;
 const fs = require('fs');
-const parsePhases = constants.parsePhases;
+const parserEvents = constants.parserEvents;
 const path = require('path');
 const settings = require('../../settings');
 const supportedLanguages = constants.supportedLanguages;
 const appDir = settings.appDir;
 
 const DEFAULT_KEY = 'default';
-const UNSUPPORTED_PARSE_PHASE = constants.UNSUPPORTED_PARSE_PHASE;
+const UNSUPPORTED_PARSE_EVENT = constants.UNSUPPORTED_PARSE_EVENT;
 
 let ruleMap = {
   core: {}
@@ -23,13 +23,13 @@ Object.keys(coreRules)
   .forEach(ruleName => ruleMap.core[ruleName] = require(`./${ruleName}`));
 
 class RuleProvider {
-  constructor(language, phase, activeSetting) {
+  constructor(language, eventType, activeSetting) {
     this.activeSetting = activeSetting;
     this.core = ruleMap.core;
     this.language = language;
     this.languageSpecific = null;
     this.rules = null;
-    this.phase = phase;
+    this.eventType = eventType;
   }
 
   getLanguageSpecific() {
@@ -48,10 +48,10 @@ class RuleProvider {
 
           if (Object.entries(languageSpecific).length === 0) {
             let core = this.core;
-            let phaseName = this.getPhaseName();
-            let settingPhaseRules = this.getSettingPhaseRules(phaseName);
+            let eventName = this.getEventName();
+            let settingEventRules = this.getSettingEventRules(eventName);
 
-            settingPhaseRules.forEach(ruleName => {
+            settingEventRules.forEach(ruleName => {
               if (!(ruleName in core)) {
                 languageSpecific[ruleName] = require(`./${key}/${ruleName}`)
               }
@@ -68,9 +68,9 @@ class RuleProvider {
     return this.languageSpecific;
   }
 
-  getPhaseName() {
-    return Object.keys(parsePhases).find(
-        name => parsePhases[name] === this.phase);
+  getEventName() {
+    return Object.keys(parserEvents).find(
+        name => parserEvents[name] === this.eventType);
   }
 
   getRules() {
@@ -78,10 +78,10 @@ class RuleProvider {
       let rules = [];
       let core = this.core;
       let languageSpecific = this.getLanguageSpecific();
-      let phaseName = this.getPhaseName();
-      let settingPhaseRules = this.getSettingPhaseRules(phaseName);
+      let eventName = this.getEventName();
+      let settingEventRules = this.getSettingEventRules(eventName);
 
-      settingPhaseRules.forEach(ruleName => {
+      settingEventRules.forEach(ruleName => {
         switch (true) {
           case ruleName in languageSpecific:
             rules.push(languageSpecific[ruleName]);
@@ -98,123 +98,98 @@ class RuleProvider {
     return this.rules;
   }
 
-  getSettingPhaseRules(phaseName) {
+  getSettingEventRules(eventName) {
     let activeSetting = this.activeSetting;
 
-    return activeSetting.phaseRules[phaseName.toLowerCase()];
+    return activeSetting.eventRules[eventName.toLowerCase()];
   }
 }
 
-function getRules(language, phase) {
-  return getRuleSetting()
-    .then(defaultSetting => mergeRuleSettings(language, phase, defaultSetting))
-    .then(ruleSettings => getRulesFromSettings(language, phase, ruleSettings));
+function getRules(language, eventType) {
+  let defaultSetting = getRuleSetting();
+  let languageSetting = getRuleSetting(language);
+  let ruleSettings = {
+    defaultSetting: defaultSetting,
+    languageSetting: languageSetting
+  };
+
+  return getRulesFromSettings(language, eventType, ruleSettings);
 }
 
-function getRulesFromSettings(language, phase, ruleSettings) {
-  return new Promise((resolve, reject) => {
-    let activeSetting;
-    let defaultSetting = ruleSettings.defaultSetting;
-    let languageSetting = ruleSettings.languageSetting;
+function getRulesFromSettings(language, eventType, ruleSettings) {
+  let defaultSetting = ruleSettings.defaultSetting;
+  let activeSetting = defaultSetting;
+  let languageSetting = ruleSettings.languageSetting;
+  let rules;
+  let isDefined = hasDefinedEvent.apply(languageSetting, [eventType]);
 
-    switch (hasDefinedPhase.apply(languageSetting, [phase])) {
-      case true:
-        activeSetting = languageSetting;
-        break;
-      case false:
-        activeSetting = defaultSetting;
-        break;
-    }
+  if (isDefined === true) {
+    activeSetting = languageSetting;
+  }
 
-    try {
-      let rules = new RuleProvider(language, phase, activeSetting).getRules();
+  try {
+    rules = new RuleProvider(language, eventType, activeSetting).getRules();
+  } catch (e) { /* istanbul ignore next */
+    throw e; // TODO: throw a TypedError instead
+  }
 
-      return resolve(rules);
-    } catch (err) {
-      return reject(err);
-    }
-  });
+  return rules;
 }
 
 function getRuleSetting(language) {
-  return new Promise((resolve, reject) => {
-    let key =
-      !language || language == supportedLanguages.UNKNOWN ?
-        DEFAULT_KEY : language;
-    let settingsPath;
+  let key =
+    !language || language == supportedLanguages.UNKNOWN ?
+      DEFAULT_KEY : language;
+  let settingsPath;
 
-    if (key in ruleSettingMap) {
-      return resolve(ruleSettingMap[key]);
-    }
+  if (key in ruleSettingMap) {
+    return ruleSettingMap[key];
+  }
 
-    switch (key) {
-      case DEFAULT_KEY:
-        settingsPath =
-          path.join(appDir, 'src', 'nlp', 'rules', 'settings.default.json');
-        break;
-      default:
-        settingsPath =
-          path.join(appDir, 'src', 'nlp', 'rules', language, 'settings.json');
-    }
+  switch (key) {
+    case DEFAULT_KEY:
+      settingsPath =
+        path.join(appDir, 'src', 'nlp', 'rules', 'settings.default.json');
+      break;
+    default:
+      settingsPath =
+        path.join(appDir, 'src', 'nlp', 'rules', language, 'settings.json');
+  }
 
-    fs.access(settingsPath, fs.F_OK, err => {
-      if (err) {
-        return reject(err);
-      }
+  try {
+    fs.accessSync(settingsPath, fs.F_OK);
 
-      let ruleSetting;
+    ruleSettingMap[key] = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+  } catch (e) { /* istanbul ignore next */
+    throw e; // TODO: throw a TypedError instead
+  }
 
-      try {
-        ruleSettingMap[key] = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-
-        return resolve(ruleSettingMap[key])
-      } catch(e) {
-        // Dead code unless JSON file corrupt, in which case build will fail.
-        return reject(e);
-      }
-    });
-  });
+  return ruleSettingMap[key];
 }
 
-function hasDefinedPhase(phase) {
+function hasDefinedEvent(eventType) {
   let ruleSetting = this;
-  let phaseName = Object.keys(parsePhases).find(
-    name => parsePhases[name] === phase);
+  let eventName = Object.keys(parserEvents).find(
+    name => parserEvents[name] === eventType);
 
-  return phaseName.toLowerCase() in ruleSetting.phaseRules;
+  return eventName.toLowerCase() in ruleSetting.eventRules;
 }
 
-function mergeRuleSettings(language, phase, defaultSetting) {
-  return new Promise((resolve, reject) => {
-    getRuleSetting(language)
-      .then(languageSetting => resolve({
-        defaultSetting: defaultSetting,
-        languageSetting: languageSetting
-      }))
-      .catch(err => reject(err));
-  });
-}
-
-function applyTo(parent, phase, callback) {
+function applyTo(parent, eventType, callback) {
   let newChildren = [];
+  let rules = getRules(parent.getLanguage(), eventType);
 
-  return getRules(parent.getLanguage(), phase)
-    .then((rules) => {
-      return chain(rules, (rule, next) => {
-        rule.applyTo(parent, phase, (err, tokens) => {
-          if (err) return next(err);
+  rules.forEach(rule => {
+    let tokens = rule.applyTo(parent, eventType);
 
-          if (tokens && tokens.length > 0) {
-            newChildren = newChildren.concat(tokens);
-            newChildren.sort((a, b) =>
-              a.index > b.index ? 1 : a.index < b.index ? -1 : 0);
-          }
-
-          return next();
-        })
-      }).then(_ => callback(null, newChildren))
-      .catch(err => callback(err, null));
+    if (tokens && tokens.length > 0) {
+      newChildren = newChildren.concat(tokens);
+      newChildren.sort((a, b) =>
+        a.index > b.index ? 1 : a.index < b.index ? -1 : 0);
+    }
   });
+
+  return newChildren;
 }
 
 module.exports = {

@@ -11,11 +11,7 @@ const constants = require('../constants');
 const errors = require('../../utils/errors');
 const linkingPunctuation = constants.linkingPunctuation;
 const namespaces = constants.namespaces;
-const parsePhases = constants.parsePhases;
-const punctFilterFn = (child, level) =>
-  (child instanceof EnclosingPunctuationToken ||
-  child instanceof OrdinaryPunctuationToken) && level == 1 ?
-    child.getValue() : undefined;
+const parserEvents = constants.parserEvents;
 
 const BASE_LEX_REGEX = constants.BASE_LEX_REGEX;
 
@@ -82,39 +78,42 @@ function makeToken(tokens, value, parent, fromSplit) {
   }
 }
 
-function punctResolverFn() {
-  return this.getInfo(namespaces.PUNCTUATION) || [];
+function filterChars(splittableChars) {
+  let punctuationTokens = this;
+
+  punctuationTokens.forEach(token =>
+    token instanceof EnclosingPunctuationToken ||
+      token instanceof OrdinaryPunctuationToken ?
+    splittableChars.push(token.getValue()) : undefined);
 }
 
-function applyTo(token, phase, callback) {
+function applyTo(token, eventType) {
   let tokens = [];
   let punctuationTokens = token.getInfo(namespaces.PUNCTUATION) || [];
   let originalValue = token.getValue();
+  let splittableChars = [];
 
-  if (phase == parsePhases.LINEAR) {
+  if (eventType == parserEvents.TOKENS_TYPED) {
     if (punctuationTokens.length > 0) {
-      token.filterMap(punctFilterFn, punctResolverFn).then(splittableChars => {
-        let err;
-        let unique = (char, index) => splittableChars.indexOf(char) >= index;
+      let unique = (char, index) => splittableChars.indexOf(char) >= index;
 
-        try {
-          splittableChars = splittableChars.filter(unique);
+      try {
+        filterChars.apply(punctuationTokens, [splittableChars]);
 
-          let splitRegex = getSplitRegex(splittableChars);
-          let newValues = originalValue.split(splitRegex);
+        splittableChars = splittableChars.filter(unique);
 
-          newValues.forEach(value => makeToken(tokens, value, token, true));
-        } catch (e) {
-          err = errors.getTypedError(e, LexRuleError);
-        } finally {
-          return callback(err, tokens);
-        }
-      }).catch(err => callback(err, null));
+        let splitRegex = getSplitRegex(splittableChars);
+        let newValues = originalValue.split(splitRegex);
+
+        newValues.forEach(value => makeToken(tokens, value, token, true));
+      } catch (e) {
+        throw errors.getTypedError(e, LexRuleError);
+      }
     } else {
       makeToken(tokens, originalValue, token, false);
-
-      return callback(null, tokens);
     }
+
+    return tokens;
   }
 }
 

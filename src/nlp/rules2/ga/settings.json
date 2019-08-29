@@ -1,5 +1,0 @@
-{
-  "phaseRules": {
-    "linear": ["punctuation", "lex", "initial-mutation"]
-  }
-}

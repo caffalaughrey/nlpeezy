@@ -3,7 +3,8 @@
 const constants = require('./constants');
 const errors = require('../utils/errors');
 const split2 = require('split2');
-const rules2 = require('./rules2/index');
+const supportedLanguages = constants.supportedLanguages;
+const rules = require('./rules/index');
 
 const Token = require('./classes/Token');
 const TokenGroup = require('./classes/TokenGroup');
@@ -21,21 +22,26 @@ class TokensError extends TypedError {
 
 const FAILED_IN_READSTREAM = 'Failed while processing Readable stream.';
 
-const parsePhases = constants.parsePhases;
+const parserEvents = constants.parserEvents;
 
 const transforms = {
-  readIntoTokenGroups: scope => {
+  readIntoTokenGroups: (scope, config) => {
+    config = config || {};
+
     return new TokenTransform({
       transform(chunk, encoding, callback) {
         let tokenGroup = new TokenGroup();
+        let language = config.language || supportedLanguages.UNKNOWN;
         let err;
+
+        tokenGroup.setLanguage(language);
 
         scope.push(tokenGroup);
 
         try {
           tokenGroup.setRaw(chunk.toString());
-          tokenGroup.parse(parsePhases.PREP, rules2);
-          tokenGroup.parse(parsePhases.LINEAR, rules2);
+          tokenGroup.parse(parserEvents.TOKENS_RAW, rules);
+          tokenGroup.parse(parserEvents.TOKENS_TYPED, rules);
         } catch (e) { /* istanbul ignore next */
           err = e;
         } finally {
@@ -57,16 +63,16 @@ let handleError = (err, reason, callback) => {
 }
 
 module.exports = {
-  fromReadStream: function(readStream, callback) {
+  fromReadStream: function(readStream, config, callback) {
     let tokenGroups = [];
 
     readStream.pipe(split2())
-      .pipe(transforms.readIntoTokenGroups(tokenGroups))
+      .pipe(transforms.readIntoTokenGroups(tokenGroups, config))
       .on('error', /* istanbul ignore next */
         err => handleError(err, FAILED_IN_READSTREAM, callback))
       .on('finish', () => callback(null, tokenGroups));
   },
-  fromString: function(str, callback) {
+  fromString: function(str, config, callback) {
     let readStream = new TokenReadable();
     let err;
 
@@ -81,7 +87,7 @@ module.exports = {
     if (err) {
       return handleError(err, FAILED_IN_READSTREAM, callback);
     } else {
-      return this.fromReadStream(readStream, callback);
+      return this.fromReadStream(readStream, config, callback);
     }
   },
   Token: Token,

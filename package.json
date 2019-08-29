@@ -1,18 +1,33 @@
 {
   "name": "nlpeezy",
-  "version": "0.1.0",
-  "description": "",
-  "main": "index.js",
+  "version": "1.0.0-beta.0",
+  "description": "A natural language processing package in Javascript",
+  "main": "./src/index.js",
+  "bin": {
+    "lemma-manager": "./bin/lemma-manager.js",
+    "nlpeezy-build": "./bin/build.sh"
+  },
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha"
   },
   "author": "Aaron Caffrey",
   "license": "MIT",
   "dependencies": {
+    "bluebird": "^3.5.5",
     "extends-classes": "^1.0.5",
+    "redis": "^2.8.0",
     "split2": "^3.1.1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caffalaughrey/nlpeezy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/caffalaughrey/nlpeezy/issues"
+  },
+  "homepage": "https://github.com/caffalaughrey/nlpeezy#readme",
   "devDependencies": {
+    "argparse": "^1.0.10",
     "mocha": "^6.1.4",
     "mocha-lcov-reporter": "^1.3.0",
     "nyc": "^14.1.1"

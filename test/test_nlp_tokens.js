@@ -4,8 +4,10 @@ const assert = require('assert');
 const constants = require('../src/nlp/constants');
 const errors = require('../src/utils/errors');
 const messages = constants.messages;
+const supportedLanguages = constants.supportedLanguages;
 const tokens = require('../src/nlp/tokens');
 
+const BASIC_CONFIG =  {language: supportedLanguages.IRISH};
 const BASIC_SAMPLE = 'Maraithe le tae is maraithe gan é.';
 const CHUNK_COMPLAINT =
 	'The "chunk" argument must be one of type string, Buffer, or Uint8Array.';
@@ -18,7 +20,7 @@ const TypedError = errors.TypedError;
 describe('/nlp/tokens', () => {
 	describe('#fromString()', () => {
     it('knows its token groups from a string', done => {
-      tokens.fromString(BASIC_SAMPLE, (err, tokenGroups) => {
+      tokens.fromString(BASIC_SAMPLE, BASIC_CONFIG, (err, tokenGroups) => {
         if (err) {
           throw err;
         }
@@ -28,7 +30,7 @@ describe('/nlp/tokens', () => {
     });
 
     it('knows an error produced from invalid data', done => {
-      tokens.fromString({invalid: 'data'}, (err, tokenGroups) => {
+      tokens.fromString({invalid: 'data'}, BASIC_CONFIG, (err, tokenGroups) => {
         let errs = err.getErrors();
 
 				assert(errs[0].message == FAILED_IN_READSTREAM, INVALID_VALUE);

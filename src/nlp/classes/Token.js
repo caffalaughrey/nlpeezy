@@ -8,7 +8,7 @@ const punctuationTypes = constants.punctuationTypes;
 
 const Gram = require('../../utils/gram').Gram;
 const LanguageSupport = require('../../utils/language').LanguageSupport;
-const Tree = require('../../utils/tree2').Tree;
+const Tree = require('../../utils/tree').Tree;
 const TypedError = errors.TypedError;
 
 const HAS_ENCLOSING_PUNCT_REGEX = '[\\(\\)\\[\\]"]';
@@ -70,9 +70,9 @@ class Token extends classes(Gram, LanguageSupport, Tree) {
     return this.info[key];
   }
 
-  // getLemma() {
-  //   return this.lemma;
-  // }
+  getLemma() {
+    return this.lemma;
+  }
 
   isString() {
     return typeof this.value == 'string';
@@ -82,9 +82,9 @@ class Token extends classes(Gram, LanguageSupport, Tree) {
     this.info[key] = value;
   }
 
-  // setLemma(lemma) {
-  //   this.lemma = lemma;
-  // }
+  setLemma(lemma) {
+    this.lemma = lemma;
+  }
 
   sort() {
     this.children.sort((a, b) =>

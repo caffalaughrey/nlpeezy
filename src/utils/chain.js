@@ -4,10 +4,11 @@ const constants = require('../nlp/constants');
 const errors = require('./errors');
 const messages = constants.messages;
 
-const TypedError = errors.TypedError;
-
 const EMPTY_ARRAY = messages.EMPTY_ARRAY;
 const UNKNOWN_STATE = messages.UNKNOWN_STATE;
+
+const Promise = require('bluebird');
+const TypedError = errors.TypedError;
 
 class ChainError extends TypedError {
   constructor(message) {

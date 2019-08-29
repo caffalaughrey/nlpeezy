@@ -1,5 +1,6 @@
 {
-  "phaseRules": {
-    "linear": ["punctuation", "lex", "initial-mutation"]
+  "eventRules": {
+    "tokens_typed": ["punctuation", "lex", "initial-mutation"],
+    "lemmas": ["lemmatization"]
   }
 }

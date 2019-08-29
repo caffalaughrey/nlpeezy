@@ -1,7 +1,5 @@
 'use strict';
 
-const chain = require('./chain');
-
 const NON_ARRAY_VALUE = 'FATAL: Non-array value.'
 const UNSUPPORTED_FILTER_TYPE = 'FATAL: Unsupported filter type.'
 
@@ -47,22 +45,17 @@ class Tree {
       childResolverFn = args[1];
     }
 
-    return scope.walk(Infinity, (child, level, next) => {
-      let err;
+    scope.walk(Infinity, (child, level) => {
+      let keep = filterFn(child, level);
 
-      try {
-        let keep = filterFn(child, level);
-
-        if (keep !== undefined) {
-          results.push(keep);
-        }
-      } catch (e) {
-        err = e;
-      } finally {
-        return next(err);
+      if (keep !== undefined) {
+        results.push(keep);
       }
-    }, 0, childResolverFn)
-      .then(_ => new Promise((resolve, reject) => resolve(results)));
+
+      return true;
+    }, 0, childResolverFn);
+
+    return results;
   }
 
   unwind(...args) {
@@ -71,7 +64,7 @@ class Tree {
     let transformFn = args[1];
     let parentType = args[0];
 
-    return this.filterMap((child, level) => {
+    let newChildren = this.filterMap((child, level) => {
       let parent = child.parent;
       let typeMatch = parentType ? parent instanceof parentType : true;
 
@@ -79,6 +72,7 @@ class Tree {
         return child;
       } else if (level == 2 && typeMatch) {
         let oldParent = parent;
+
         child.parent = scope;
 
         transformFn(child, oldParent);
@@ -87,13 +81,11 @@ class Tree {
       } else {
         return undefined;
       }
-    }, childResolverFn).then(newChildren => {
-      return new Promise((resolve, reject) => {
-        scope.children = newChildren;
+    }, childResolverFn);
 
-        resolve(scope.children);
-      });
-    });
+    scope.children = newChildren;
+
+    return scope.children;
   }
 
   walk(...args) {
@@ -104,76 +96,47 @@ class Tree {
     let callback = args[1];
     let level = args[2];
     let childResolverFn = args[3];
-    let shouldStop = false;
-    let stopFn = () => shouldStop = true;
+    let shouldContinue = true;
 
-    function chainCallback(child, next) {
-      callback(child, level, (err, stop) => {
-        let descendants;
+    function chainCallback(child) {
+      shouldContinue = callback(child, level);
 
-        if (err) {
-          return next(err, null);
-        }
+      if (!shouldContinue) return false;
 
-        try {
-          descendants = childResolverFn.apply(child, [level]);
-        } catch(e) {
-          err = e;
-        }
+      let descendants = childResolverFn.apply(child, [level]);
 
-        if (err) {
-          return next(err, null);
-        } else if (child && typeof child == 'object' && descendants.length > 0) {
-          return child.walk(depth, callback, level + 1)
-            .then(_ => next(null, stop));
-        } else {
-          return next(null, stop);
-        }
-      });
+      if (child && typeof child == 'object' && descendants.length > 0) {
+        child.walk(depth, callback, level + 1);
+      }
+
+      return true;
     }
 
     function walkInner() {
-      let err;
-      let children;
+      let children = childResolverFn.apply(scope, [level]);
 
-      try {
-        children = childResolverFn.apply(scope, [level]);
-
-        if (children && !(children instanceof Array)) {
-          throw NON_ARRAY_VALUE;
-        }
-      } catch (e) {
-        err = e;
+      if (children.length > 0 && level < depth) {
+        children.every(chainCallback);
       }
 
-      if (err) {
-        return new Promise((_, reject) => reject(err));
-      } else if (children.length > 0 && level < depth) {
-        return chain(children, chainCallback);
-      } else {
-        return;
-      }
+      return;
     }
 
-    function walkOuter(resolve, reject) {
+    function walkOuter() {
       if (level == 0) {
-        callback(scope, level, (err, stop) => {
-          if (err) {
-            return reject(err);
-          } else if (stop) {
-            return resolve();
-          } else {
-            level++;
+        shouldContinue = callback(scope, level);
 
-            return resolve(walkInner());
-          }
-        });
+        if (!shouldContinue) return;
+
+        level++;
+
+        return walkInner();
       } else {
-        return resolve(walkInner());
+        return walkInner();
       }
     }
 
-    return new Promise(walkOuter);
+    return walkOuter();
   }
 }
 

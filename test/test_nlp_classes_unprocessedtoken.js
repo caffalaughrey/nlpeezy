@@ -3,8 +3,8 @@
 const assert = require('assert');
 const constants = require('../src/nlp/constants');
 const messages = constants.messages;
-const parsePhases = require('../src/nlp/constants').parsePhases;
-const rules2 = require('../src/nlp/rules2/index');
+const parserEvents = require('../src/nlp/constants').parserEvents;
+const rules = require('../src/nlp/rules/index');
 
 const BeginLineToken = require('../src/nlp/classes/BeginLineToken');
 const LexicalToken = require('../src/nlp/classes/LexicalToken');
@@ -19,20 +19,20 @@ const UNEXPECTED_LENGTH = messages.UNEXPECTED_LENGTH;
 const UNEXPECTED_TOKEN = messages.UNEXPECTED_TOKEN;
 const UNEXPECTED_TYPE = messages.UNEXPECTED_TYPE;
 const UNEXPECTED_VALUE = messages.UNEXPECTED_VALUE;
-const UNSUPPORTED_PARSE_PHASE = messages.UNSUPPORTED_PARSE_PHASE;
+const UNSUPPORTED_PARSE_EVENT = messages.UNSUPPORTED_PARSE_EVENT;
 
 describe('/nlp/classes/UnprocessedToken', () => {
 	describe('#parse', () => {
-    it('knows its parsed tokens in linear phase', done => {
+    it('knows its parsed tokens in tokens typed eventType', done => {
       let raw = BASIC_SAMPLE;
       let tokenGroup = new TokenGroup();
 
       tokenGroup.setRaw(raw);
-      tokenGroup.parse(parsePhases.PREP, rules2);
+      tokenGroup.parse(parserEvents.TOKENS_RAW, rules);
 
       tokenGroup.children.forEach(token => {
         if (token instanceof UnprocessedToken) {
-          let parsed = token.parse(parsePhases.LINEAR, rules2);
+          let parsed = token.parse(parserEvents.TOKENS_TYPED, rules);
 
           token.children = parsed;
         }
@@ -89,14 +89,14 @@ describe('/nlp/classes/UnprocessedToken', () => {
       done();
     });
 
-    it('handles an error for unsupported parse phase', done => {
-      let phase = parsePhases.INACCESSIBLE;
+    it('handles an error for unsupported parse eventType', done => {
+      let eventType = parserEvents.INACCESSIBLE;
       let token = new UnprocessedToken(BASIC_SAMPLE);
 
       try {
-        token.parse(phase, rules2);
+        token.parse(eventType, rules);
       } catch(err) {
-        let message = `${UNSUPPORTED_PARSE_PHASE}: ${phase}`;
+        let message = `${UNSUPPORTED_PARSE_EVENT}: ${eventType}`;
 
         assert(err.message == message, UNEXPECTED_VALUE);
         assert(err.name == 'UnprocessedTokenError', UNEXPECTED_TYPE);

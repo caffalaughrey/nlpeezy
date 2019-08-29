@@ -4,18 +4,29 @@ const EnclosingPunctuationToken =
   require('../classes/EnclosingPunctuationToken');
 const LinkingPunctuationToken = require('../classes/LinkingPunctuationToken');
 const OrdinaryPunctuationToken = require('../classes/OrdinaryPunctuationToken');
+const UnprocessedToken = require('../classes/UnprocessedToken');
 
 const constants = require('../constants');
+const errors = require('../../utils/errors');
 const namespaces = constants.namespaces;
-const parsePhases = constants.parsePhases;
+const parserEvents = constants.parserEvents;
 const punctuationTypes = constants.punctuationTypes;
 
 const ENCLOSING_PUNCTUATION = constants.enclosingPunctuation;
 const LINKING_PUNCTUATION = constants.linkingPunctuation;
-const NAMESPACE = 'punctuation';
+const NAMESPACE = namespaces.PUNCTUATION;
 const ORDINARY_PUNCTUATION = constants.ordinaryPunctuation;
 const INVALID_STATE = constants.messages.INVALID_STATE;
-const APOSTROPHE = LINKING_PUNCTUATION.APOSTROPHE
+const APOSTROPHE = LINKING_PUNCTUATION.APOSTROPHE;
+
+const TypedError = errors.TypedError;
+class PunctuationError extends TypedError {
+  constructor(message) {
+    super(message);
+
+    this.name = 'PunctuationError';
+  }
+}
 
 function getPunctuationTokens(parent, type) {
   let group;
@@ -33,6 +44,7 @@ function getPunctuationTokens(parent, type) {
     case OrdinaryPunctuationToken:
       punctMap = ORDINARY_PUNCTUATION;
       break;
+    /* istanbul ignore next */
     default:
       throw INVALID_STATE; // Should be unreachable, but just in case.
   }
@@ -70,12 +82,11 @@ function getPunctuationTokens(parent, type) {
   return tokens;
 }
 
-function applyTo(token, phase, callback) {
-  let err;
+function applyTo(token, eventType) {
   let tokens = [];
   let concat = newTokens => tokens = tokens.concat(newTokens);
 
-  if (phase == parsePhases.LINEAR) {
+  if (eventType == parserEvents.TOKENS_TYPED) {
     try {
       if (token.hasPunctuation(punctuationTypes.ENCLOSING)) {
         concat(getPunctuationTokens(token, EnclosingPunctuationToken));
@@ -91,14 +102,14 @@ function applyTo(token, phase, callback) {
 
       token.setInfo(namespaces.PUNCTUATION, tokens);
     } catch(e) {
-      err = e;
-    } finally {
-      return callback(err, tokens)
+      throw errors.getTypedError(e, PunctuationError);
     }
   }
+
+  return tokens;
 }
 
 module.exports = {
   applyTo: applyTo,
   namespace: namespaces.PUNCTUATION
-}
+};

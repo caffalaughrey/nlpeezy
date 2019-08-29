@@ -1,8 +1,8 @@
 'use strict';
 
 const assert = require('assert');
-const parsePhases = require('../src/nlp/constants').parsePhases;
-const rules2 = require('../src/nlp/rules2/index');
+const parserEvents = require('../src/nlp/constants').parserEvents;
+const rules = require('../src/nlp/rules/index');
 
 const BeginLineToken = require('../src/nlp/classes/BeginLineToken');
 const LexicalToken = require('../src/nlp/classes/LexicalToken');
@@ -19,12 +19,12 @@ const UNEXPECTED_VALUE = 'Unexpected value.';
 
 describe('/nlp/classes/TokenGroup', () => {
 	describe('#TokenGroup', () => {
-    it('knows its parsed tokens in preparation phase', done => {
+    it('knows its parsed tokens in raw eventType', done => {
       let raw = BASIC_SAMPLE;
       let tokenGroup = new TokenGroup();
 
       tokenGroup.setRaw(raw);
-      tokenGroup.parse(parsePhases.PREP, rules2);
+      tokenGroup.parse(parserEvents.TOKENS_RAW, rules);
 
       let tokens = tokenGroup.children;
 
@@ -53,13 +53,13 @@ describe('/nlp/classes/TokenGroup', () => {
       done();
     });
 
-		it('knows its parsed tokens in linear phase', done => {
+		it('knows its parsed tokens in typed eventType', done => {
 			let raw = BASIC_SAMPLE;
       let tokenGroup = new TokenGroup();
 
       tokenGroup.setRaw(raw);
-      tokenGroup.parse(parsePhases.PREP, rules2);
-			tokenGroup.parse(parsePhases.LINEAR, rules2);
+      tokenGroup.parse(parserEvents.TOKENS_RAW, rules);
+			tokenGroup.parse(parserEvents.TOKENS_TYPED, rules);
 
 			let tokens = tokenGroup.children;
 

@@ -3,18 +3,19 @@
 const classes = require('extends-classes');
 const composeGrams = require('../../utils/gram').composeGrams;
 const constants = require('../constants');
-const parsePhases = constants.parsePhases;
+const parserEvents = constants.parserEvents;
 const punctuation = constants.punctuation;
 const whitespace = constants.whitespace;
 
 const BeginLineToken = require('./BeginLineToken');
 const LanguageSupport = require('../../utils/language').LanguageSupport;
+const LexicalToken = require('./LexicalToken');
 const SpaceToken = require('./SpaceToken');
 const Token = require('./Token');
-const Tree = require('../../utils/tree2').Tree;
+const Tree = require('../../utils/tree').Tree;
 const UnprocessedToken = require('./UnprocessedToken');
 
-function prep(rules){
+function tokensRaw(rules){
   let raw = this.raw;
   let unprocessedRaw = raw.split(whitespace.SPACE);
   let unprocessed = [];
@@ -60,13 +61,13 @@ function prep(rules){
 
   composeGrams('unprocessed', ...unprocessed);
 
-  this._phasesCompleted[parsePhases.PREP] = null;
+  this._eventsCompleted[parserEvents.TOKENS_RAW] = null;
 }
 
-function linear(rules) {
+function tokensTyped(rules) {
   this.children.forEach(token => {
     if (token instanceof UnprocessedToken) {
-      let parsed = token.parse(parsePhases.LINEAR, rules);
+      let parsed = token.parse(parserEvents.TOKENS_TYPED, rules);
 
       token.children = parsed;
     }
@@ -78,7 +79,17 @@ function linear(rules) {
     }
   });
 
-  this._phasesCompleted[parsePhases.LINEAR] = null;
+  this._eventsCompleted[parserEvents.TOKENS_TYPED] = null;
+}
+
+function lemmas(rules) {
+  this.children.forEach(token => {
+    if (token instanceof UnprocessedToken || token instanceof LexicalToken) {
+      token.parse(parserEvents.LEMMAS, rules);
+    }
+  });
+
+  this._eventsCompleted[parserEvents.LEMMAS] = null;
 }
 
 class TokenGroup extends classes(LanguageSupport, Tree) {
@@ -86,24 +97,31 @@ class TokenGroup extends classes(LanguageSupport, Tree) {
     super();
 
     this.index = null;
+    this.lemmasMap = {};
     this.raw = null;
-    this._phasesCompleted = {};
+    this._eventsCompleted = {};
   }
 
-  allowed(phase) {
-    return !(phase in this._phasesCompleted) ? phase : parsePhases.INACCESSIBLE;
+  allowed(eventType) {
+    return !(eventType in this._eventsCompleted) ? eventType : parserEvents.INACCESSIBLE;
   }
 
-  parse(phase, rules) {
-    switch (this.allowed(phase)) {
-      case parsePhases.PREP:
-        prep.apply(this, [rules]);
+  parse(eventType, rules) {
+    switch (this.allowed(eventType)) {
+      case parserEvents.TOKENS_RAW:
+        tokensRaw.apply(this, [rules]);
         break;
-      case parsePhases.LINEAR:
-        linear.apply(this, [rules]);
+      case parserEvents.TOKENS_TYPED:
+        tokensTyped.apply(this, [rules]);
+        break;
+      case parserEvents.LEMMAS:
+        lemmas.apply(this, [rules]);
         break;
     }
+  }
 
+  setLemmasMap(lemmasMap) {
+    this.lemmasMap = lemmasMap || this.lemmasMap;
   }
 
   setRaw(raw) {
